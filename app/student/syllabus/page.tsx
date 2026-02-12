@@ -13,11 +13,12 @@ interface Syllabus {
   };
 }
 
-export default function StudentMaterialsPage() {
+export default function StudentSyllabusPage() {
   const [materials, setMaterials] = useState<Syllabus[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [previewMaterial, setPreviewMaterial] = useState<Syllabus | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewTitle, setPreviewTitle] = useState<string>("");
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -27,8 +28,12 @@ export default function StudentMaterialsPage() {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => res.json())
-      .then((data) => setMaterials(data));
+      .then((res) => {
+        if (!res.ok) throw new Error("Failed to fetch materials");
+        return res.json();
+      })
+      .then((data) => setMaterials(data))
+      .catch((err) => console.error(err));
   }, []);
 
   const filteredMaterials = materials
@@ -38,6 +43,60 @@ export default function StudentMaterialsPage() {
     .filter((m) =>
       m.displayName.toLowerCase().includes(searchTerm.toLowerCase())
     );
+
+  const downloadMaterial = async (material: Syllabus) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `http://localhost:8080/api/student/materials/${material.id}/download`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error("Download failed");
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = material.fileName;
+      link.click();
+    } catch (error) {
+      alert("Download failed");
+      console.error(error);
+    }
+  };
+
+  const previewMaterial = async (material: Syllabus) => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch(
+        `http://localhost:8080/api/student/materials/${material.id}/download`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!res.ok) throw new Error("Preview failed");
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+
+      setPreviewUrl(url);
+      setPreviewTitle(material.displayName);
+    } catch (error) {
+      alert("Preview failed");
+      console.error(error);
+    }
+  };
 
   return (
     <div className="bg-[#F6F8FC] min-h-screen p-10">
@@ -64,7 +123,6 @@ export default function StudentMaterialsPage() {
 
         {/* SUBJECT FILTER */}
         <div className="bg-white rounded-2xl shadow-sm p-6 w-64 h-fit">
-
           <h3 className="text-gray-500 font-semibold mb-6 text-sm">
             FILTER SUBJECTS
           </h3>
@@ -129,18 +187,18 @@ export default function StudentMaterialsPage() {
 
               <div className="flex justify-end gap-4">
                 <button
-                  onClick={() => setPreviewMaterial(material)}
+                  onClick={() => previewMaterial(material)}
                   className="text-gray-600 hover:text-black text-sm"
                 >
                   Preview
                 </button>
 
-                <a
-                  href={`http://localhost:8080/api/student/materials/${material.id}/download`}
+                <button
+                  onClick={() => downloadMaterial(material)}
                   className="text-blue-600 hover:underline text-sm"
                 >
                   Download
-                </a>
+                </button>
               </div>
             </div>
           ))}
@@ -148,28 +206,23 @@ export default function StudentMaterialsPage() {
       </div>
 
       {/* PREVIEW MODAL */}
-      {previewMaterial && (
+      {previewUrl && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-
           <div className="bg-white w-[900px] h-[600px] rounded-2xl shadow-xl flex flex-col">
 
-            {/* Modal Header */}
             <div className="flex justify-between items-center px-6 py-4 border-b">
-              <h2 className="font-semibold text-lg">
-                {previewMaterial.displayName}
-              </h2>
+              <h2 className="font-semibold text-lg">{previewTitle}</h2>
 
               <button
-                onClick={() => setPreviewMaterial(null)}
+                onClick={() => setPreviewUrl(null)}
                 className="text-gray-500 hover:text-black"
               >
                 ✕
               </button>
             </div>
 
-            {/* PDF Viewer */}
             <iframe
-              src={`http://localhost:8080/api/student/materials/${previewMaterial.id}/download`}
+              src={previewUrl}
               className="flex-1 rounded-b-2xl"
             />
           </div>
