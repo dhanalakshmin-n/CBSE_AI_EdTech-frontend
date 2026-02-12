@@ -5,70 +5,60 @@ import { useRouter } from "next/navigation";
 
 interface Quiz {
   id: number;
-  classLevel: number;
   questionText: string;
-  option1: string;
-  option2: string;
-  option3: string;
-  option4: string;
-  correctAnswer: string;
 }
 
-export default function StudentQuizzesPage() {
+export default function QuizPage() {
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const router = useRouter();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
 
-    if (!token) {
-      router.push("/");
-      return;
-    }
-
     fetch("http://localhost:8080/api/student/quizzes", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => {
-        if (res.status === 401) {
-          localStorage.removeItem("token");
-          router.push("/");
-        }
-        return res.json();
-      })
-      .then((data) => {
-        setQuizzes(data);
-      })
-      .catch((err) => {
-        console.error("Error fetching quizzes:", err);
-      });
-  }, [router]);
+      .then((res) => res.json())
+      .then((data) => setQuizzes(data));
+  }, []);
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>Available Quizzes</h2>
+    <div>
+      <h1 className="text-3xl font-bold mb-2">Available Quizzes</h1>
+      <p className="text-gray-500 mb-8">
+        Practice sets curated specifically for your class.
+      </p>
 
-      {quizzes.length === 0 && <p>No quizzes available.</p>}
+      <div className="grid grid-cols-3 gap-8">
+        {quizzes.map((quiz) => (
+          <div
+            key={quiz.id}
+            onClick={() => router.push(`/student/quizzes/${quiz.id}`)}
+            className="bg-white rounded-2xl shadow-md p-6 hover:shadow-xl transition cursor-pointer"
+          >
+            <div className="flex justify-between items-center mb-4">
+              <div className="bg-blue-100 text-blue-600 p-3 rounded-xl">
+                🎓
+              </div>
+              <span className="text-sm text-gray-400">15 Mins</span>
+            </div>
 
-      {quizzes.map((quiz) => (
-        <div
-  key={quiz.id}
-  onClick={() => router.push(`/student/quizzes/${quiz.id}`)}
-  style={{
-    border: "1px solid #ddd",
-    padding: "15px",
-    marginBottom: "10px",
-    borderRadius: "8px",
-    cursor: "pointer"
-  }}
->
-  <h4>{quiz.questionText}</h4>
-  <p>Class: {quiz.classLevel}</p>
-</div>
+            <h3 className="font-semibold text-lg mb-2 line-clamp-2">
+              {quiz.questionText}
+            </h3>
 
-      ))}
+            <p className="text-gray-500 text-sm mb-6">
+              Practice Question
+            </p>
+
+            <div className="text-green-600 font-medium">
+              Ready to Attempt →
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
