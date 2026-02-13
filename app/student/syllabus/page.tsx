@@ -28,12 +28,21 @@ export default function StudentSyllabusPage() {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => {
-        if (!res.ok) throw new Error("Failed to fetch materials");
-        return res.json();
-      })
-      .then((data) => setMaterials(data))
-      .catch((err) => console.error(err));
+      .then(async (res) => {
+  if (!res.ok) {
+    const errorText = await res.text();
+    console.error("Backend Error:", errorText);
+    throw new Error("Failed to fetch materials");
+  }
+
+  const text = await res.text();
+  return text ? JSON.parse(text) : [];
+})
+.then((data) => setMaterials(data))
+.catch((err) => {
+  console.error(err);
+  setMaterials([]);
+});
   }, []);
 
   const filteredMaterials = materials
