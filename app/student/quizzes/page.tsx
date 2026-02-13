@@ -20,8 +20,20 @@ export default function QuizPage() {
         Authorization: `Bearer ${token}`,
       },
     })
-      .then((res) => res.json())
-      .then((data) => setQuizzes(data));
+      .then(async (res) => {
+    if (!res.ok) {
+      throw new Error("Failed to fetch quizzes");
+    }
+
+    const text = await res.text();
+
+    return text ? JSON.parse(text) : [];
+  })
+  .then((data) => setQuizzes(data))
+  .catch((err) => {
+    console.error(err);
+    setQuizzes([]);
+  });
   }, []);
 
   return (
